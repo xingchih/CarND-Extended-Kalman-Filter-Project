@@ -1,5 +1,6 @@
 #include "kalman_filter.h"
 #include <iostream>
+#include <math.h>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -67,6 +68,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   */
   VectorXd z_pred(3);
   float c1 = x_[0]*x_[0] + x_[1]*x_[1];
+  float c2 = sqrt(c1);
   if((fabs(c1) < 0.0001) || (fabs(x_[0]) < 0.0001))
   {
       std::cout << "KalmanFilter::UpdateEKF () - Error - Division by Zero" << std::endl;
@@ -74,7 +76,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   }
 
   // atan2(y,x)
-  z_pred << sqrt(c1), atan2(x_[1], x_[0]), (x_[2]*x_[0] + x_[1]*x_[3])/c1;
+  z_pred << c2, atan2(x_[1], x_[0]), (x_[2]*x_[0] + x_[1]*x_[3])/c2;
  
   VectorXd y = z - z_pred;
   MatrixXd Ht = H_.transpose();
@@ -83,6 +85,10 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   MatrixXd PHt = P_ * Ht;
   MatrixXd K = PHt * Si;
 
+  if(y[1] > M_PI || y[1] < -M_PI)
+  {
+    y[1] = fmod(y[1], M_PI);
+  }
   //new estimate
   x_ = x_ + (K * y);
   size_t x_size = x_.size();
